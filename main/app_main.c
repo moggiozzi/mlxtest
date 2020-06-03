@@ -11,6 +11,7 @@
 #include "nvs_flash.h"
 #include "esp_log.h"
 
+#include "ModbusUsartClient.h"
 #include "thermo.h"
 
 #define DBG_TAG "MAIN"
@@ -25,6 +26,11 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK( ret );
+
+	ESP_LOGI(DBG_TAG, "Uart init...");
+	if (!uartClient_init(115200))
+		ESP_LOGE(DBG_TAG, "%s Uart init failed", __func__);
+
 
     ESP_LOGI(DBG_TAG, "Thermo init...");
     if (!thermo_init())

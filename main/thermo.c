@@ -63,11 +63,12 @@ bool matrix_read_(void) {
 			s_matrix[i] = (uint16_t)mlx90640To[i];
 		t3 = time_ms();
 	}
-	printf(" period:%d,read:%d,calc:%d,vdd %.2f", t1 - t1_prev, t2-t1, t3-t2,vdd);
+	thermo_dbg_printf(" period:%d,read:%d,calc:%d,vdd %.2f", t1 - t1_prev, t2-t1, t3-t2,vdd);
 	t1_prev = t1;
 	return res;
 }
 
+bool isDetect = false;
 void calc_measures(void) {
 	float min_val = MLX_TEMP_MAX;
 	float max_val = MLX_TEMP_MIN;
@@ -78,8 +79,9 @@ void calc_measures(void) {
 			max_val = mlx90640To[idx];
 	}
 
-	thermo_dbg_printf("min %.0f, max %.0f, vdd %f\n", min_val, max_val, vdd);
+	thermo_dbg_printf("min %.0f, max %.0f %d", min_val, max_val, (int)isDetect);
 	if (max_val > 40 || min_val < 10) {
+		isDetect = true;
 		thermo_dbg_printf("ERR_DETECT %f %f", min_val, max_val);
 #if 1
 		for (int i = 0; i < MLX_MATR_HEIGHT; i++) {
@@ -90,7 +92,7 @@ void calc_measures(void) {
 			printf("\n");
 		}
 #endif
-		thermo_dbg_printf("ctrl:0x%x,stat:0x%x\n", mlx90640Frame[832],	mlx90640Frame[834]);
+		thermo_dbg_printf("ctrl:0x%x,stat:0x%x", mlx90640Frame[832],	mlx90640Frame[834]);
 	}
 }
 
@@ -115,6 +117,7 @@ void readAfterStart(void) {
 
 void task_thermo(void *arg)
 {
+	vTaskDelay(pdMS_TO_TICKS(1500));
 	readAfterStart();
 	while(1)
 	{
@@ -123,9 +126,9 @@ void task_thermo(void *arg)
 		}else{
 			thermo_dbg_printf("can't read");
 		}
-		//vTaskDelay(pdMS_TO_TICKS(THERMO_TASK_PERIOD_MS));
 		int delayMs = rand() % 1000;
 		vTaskDelay(pdMS_TO_TICKS(delayMs));
+//		vTaskDelay(pdMS_TO_TICKS(10));
 	}
 }
 
@@ -138,7 +141,7 @@ bool thermo_init(void)
 
 	uint16_t ctrl = 0;
 	MLX90640_GetControl(&ctrl);
-	thermo_dbg_printf("ctrl: 0x%04x", ctrl); // 0x1901()
+	thermo_dbg_printf("ctrl: 0x%04x", ctrl); // 0x1901
     //MLX90640_SetSubPageRepeat(1); // отключить автоматическое переключение страниц (todo разобраться: почему-то бит ломает вычисление температуры)
     //MLX90640_SetDataHold(1);// перезапись данных только по флагу overwrite
     //MLX90640_SetDataHold(0);
